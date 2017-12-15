@@ -1,5 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" DefaultTargets="Build">
+<Project ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" DefaultTargets="Build">
+  <Import Project="packages\VVVV.SlimDX.1.0.2\build\net40\VVVV.SlimDX.props" Condition="Exists('packages\VVVV.SlimDX.1.0.2\build\net40\VVVV.SlimDX.props')" />
   <PropertyGroup>
     <ProjectGuid>{6A0AFB1F-8219-4A08-85F7-B7F19B66AC16}</ProjectGuid>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -10,7 +11,9 @@
     <TargetFrameworkVersion>v4.6</TargetFrameworkVersion>
     <OutputPath>bin\$(Platform)\$(Configuration)\</OutputPath>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
-    <ReferencePath>D:\retail-ringkonfigurator\vvvv\vvvv_45beta33.7_x64\lib\core\;D:\retail-ringkonfigurator\vvvv\vvvv_45beta33.7_x64\lib\nodes\plugins\</ReferencePath>
+    <NuGetPackageImportStamp>
+    </NuGetPackageImportStamp>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DefineConstants>DEBUG;TRACE</DefineConstants>
@@ -37,28 +40,37 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="FeralTic">
-      <HintPath>D:\retail-ringkonfigurator\vvvv\vvvv_45beta33.7_x64\packs\dx11\core\FeralTic.dll</HintPath>
+      <HintPath>..\vvvv_50beta35.2_x64\packs\dx11\core\FeralTic.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="PresentationCore" />
-    <Reference Include="SlimDX" />
     <Reference Include="System" />
-    <Reference Include="System.ComponentModel.Composition.Codeplex" />
+    <Reference Include="System.ComponentModel.Composition.CodePlex, Version=4.1.2.0, Culture=neutral, PublicKeyToken=13e5ffd4e05db186, processorArchitecture=MSIL">
+      <HintPath>packages\VVVV.System.ComponentModel.Composition.Codeplex.2.5.0\lib\net40\System.ComponentModel.Composition.CodePlex.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
     <Reference Include="System.Core" />
     <Reference Include="System.Drawing" />
     <Reference Include="System.Windows.Forms" />
-    <Reference Include="VVVV.Core" />
+    <Reference Include="VVVV.Core, Version=35.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>packages\VVVV.Core.35.2.0\lib\net46\VVVV.Core.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
     <Reference Include="VVVV.DX11.Core">
-      <HintPath>D:\retail-ringkonfigurator\vvvv\vvvv_45beta33.7_x64\packs\dx11\core\VVVV.DX11.Core.dll</HintPath>
+      <HintPath>..\vvvv_50beta35.2_x64\packs\dx11\core\VVVV.DX11.Core.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="VVVV.DX11.Lib">
-      <HintPath>D:\retail-ringkonfigurator\vvvv\vvvv_45beta33.7_x64\packs\dx11\core\VVVV.DX11.Lib.dll</HintPath>
+      <HintPath>..\vvvv_50beta35.2_x64\packs\dx11\core\VVVV.DX11.Lib.dll</HintPath>
+      <Private>False</Private>
     </Reference>
-    <Reference Include="VVVV.PluginInterfaces" />
-    <Reference Include="VVVV.Utils" />
-    <Reference Include="VVVV.Utils3rdParty" />
-    <Reference Include="VVVV.UtilsIL, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>D:\retail-ringkonfigurator\vvvv\vvvv_45beta33.7_x64\lib\core\VVVV.UtilsIL.dll</HintPath>
+    <Reference Include="VVVV.Utils, Version=35.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>packages\VVVV.Utils.35.2.0\lib\net46\VVVV.Utils.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="VVVV.UtilsIL, Version=34.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>packages\VVVV.UtilsIL.34.2.0\lib\net40\VVVV.UtilsIL.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="WindowsBase" />
   </ItemGroup>
@@ -74,5 +86,18 @@
     <Compile Include="MemoryPool.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.Targets" />
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('packages\VVVV.SlimDX.1.0.2\build\net40\VVVV.SlimDX.props')" Text="$([System.String]::Format('$(ErrorText)', 'packages\VVVV.SlimDX.1.0.2\build\net40\VVVV.SlimDX.props'))" />
+    <Error Condition="!Exists('packages\VVVV.SlimDX.1.0.2\build\net40\VVVV.SlimDX.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\VVVV.SlimDX.1.0.2\build\net40\VVVV.SlimDX.targets'))" />
+    <Error Condition="!Exists('packages\VVVV.PluginInterfaces.35.2.0\build\net46\VVVV.PluginInterfaces.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\VVVV.PluginInterfaces.35.2.0\build\net46\VVVV.PluginInterfaces.targets'))" />
+  </Target>
+  <Import Project="packages\VVVV.SlimDX.1.0.2\build\net40\VVVV.SlimDX.targets" Condition="Exists('packages\VVVV.SlimDX.1.0.2\build\net40\VVVV.SlimDX.targets')" />
+  <Import Project="packages\VVVV.PluginInterfaces.35.2.0\build\net46\VVVV.PluginInterfaces.targets" Condition="Exists('packages\VVVV.PluginInterfaces.35.2.0\build\net46\VVVV.PluginInterfaces.targets')" />
 </Project>
