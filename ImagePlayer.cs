@@ -72,7 +72,7 @@ namespace VVVV.DX11.ImagePlayer
 
 			foreach (var id in indices)
 			{
-                var file = files[id % FrameCount];
+                var file = files[VVVV.Utils.VMath.VMath.Zmod(id, FrameCount)];
                 string key = file.FullName;
                 requestedKeys.Add(key);
 
