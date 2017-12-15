@@ -24,7 +24,7 @@ namespace VVVV.DX11
                 Credits = "sponsored by http://meso.net", 
                 Author = "woei")]
 	#endregion PluginInfo
-	public class PlayerDX11Node : IPluginEvaluate, IPartImportsSatisfiedNotification, IDX11ResourceProvider
+	public class PlayerDX11Node : IPluginEvaluate, IPartImportsSatisfiedNotification, IDX11ResourceHost
 	{
 		#region fields & pins
 		[Input("Directory", StringType = StringType.Directory)]
@@ -127,7 +127,7 @@ namespace VVVV.DX11
             }
 		}
 		
-		public void Update(IPluginIO pin, DX11RenderContext context)
+		public void Update(DX11RenderContext context)
         {
             int i = 0;
             for (int b = 0; b < FVisibleFrameId.SliceCount; b++)
@@ -171,7 +171,7 @@ namespace VVVV.DX11
             }
         }
 		
-		public void Destroy(IPluginIO pin, DX11RenderContext context, bool force)
+		public void Destroy(DX11RenderContext context, bool force)
         {
             this.FTextureOutput[0].Dispose(context);
         }
