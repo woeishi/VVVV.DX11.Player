@@ -129,8 +129,14 @@ namespace VVVV.DX11
 		
 		public void Update(DX11RenderContext context)
         {
+            int spreadMax = FDirectory.SliceCount
+                .CombineWith(FFileMask)
+                .CombineWith(FReload)
+                .CombineWith(FBufferSize)
+                .CombineSpreads(FPreloadFrames.SliceCount)
+                .CombineSpreads(FVisibleFrameId.SliceCount);
             int i = 0;
-            for (int b = 0; b < FVisibleFrameId.SliceCount; b++)
+            for (int b = 0; b < spreadMax; b++)
             {
                 
                 for (int s = 0; s < FVisibleFrameId[b].SliceCount; s++)
