@@ -17,7 +17,6 @@ namespace VVVV.DX11.ImagePlayer
         
         public int BufferSize { get; set; }
         public bool Loaded { get; private set; }
-        public Action<SlimDX.Direct3D11.Texture2DDescription> LoadingCompleted { get; set; }
 
         public double ReadTime { get; private set; }
         public double DecodeTime { get; private set; }
@@ -50,7 +49,6 @@ namespace VVVV.DX11.ImagePlayer
 
             this.device = device;
            
-            LoadingCompleted = (SlimDX.Direct3D11.Texture2DDescription Description) => { };
             FMemoryPool = memoryPool;
             FLogger = logger;
         }

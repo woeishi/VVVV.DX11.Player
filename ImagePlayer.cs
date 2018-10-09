@@ -84,9 +84,6 @@ namespace VVVV.DX11.ImagePlayer
                     frames[key] = new Frame(files[key].FullName, decoder, device, FMemoryPool, FLogger);
                     frames[key].BufferSize = BufferSize;
 
-                    if (description.Width == 0)
-                        frames[key].LoadingCompleted = FrameLoaded;
-
                     frames[key].LoadAsync();
                 }
             }
@@ -104,7 +101,7 @@ namespace VVVV.DX11.ImagePlayer
             if (texture == null)
                 texture = new DX11ResourceTexture2D(context);
 
-            if (description.Width != 0)
+            if (frame.Loaded)
             {
                 if (!texture.MatchesSizeByDescription(description))
                 {
@@ -117,15 +114,10 @@ namespace VVVV.DX11.ImagePlayer
                 {
                     frame.CopyResource(texture);
                     texture.Meta = frame.Filename;
+                    description = frame.Description;
                 }
             }
             return texture;
-        }
-
-        private void FrameLoaded(Texture2DDescription Description)
-        {
-            if (description.Width == 0)
-                description = Description;
         }
 
         public void Dispose()
