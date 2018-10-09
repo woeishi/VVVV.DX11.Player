@@ -3,7 +3,6 @@ using System.IO;
 using System.Linq;
 using System.Collections.Generic;
 
-using FeralTic.DX11.Resources;
 using SlimDX.Direct3D11;
 using VVVV.Core.Logging;
 
@@ -18,17 +17,12 @@ namespace VVVV.DX11.ImagePlayer
 		FileInfo[] files;
         public int FrameCount { get; private set; }
 
-        Texture2DDescription description;
         Device device;
-        public Device Device
-        {
-            get { return device; }
-            set { device = value; }
-        }
 
         Dictionary<int, Frame> frames;
         List<int> requestedKeys;
-		public IEnumerable<bool> Loaded
+        public Frame this[int index] => frames[requestedKeys[index]];
+        public IEnumerable<bool> Loaded
 		{
 			get 
 			{
@@ -60,11 +54,6 @@ namespace VVVV.DX11.ImagePlayer
             device = Lib.Devices.DX11GlobalDevice.DeviceManager.RenderContexts[0].Device;
         }
 		
-        public Frame GetFrame(int index)
-        {
-            return frames[requestedKeys[index]];
-        }
-
         public void Preload(IEnumerable<int> indices)
 		{
             requestedKeys.Clear();
@@ -94,31 +83,6 @@ namespace VVVV.DX11.ImagePlayer
                 frames.Remove(d);
 			}
 		}
-
-        public DX11ResourceTexture2D SetTexture(Frame frame, DX11ResourceTexture2D texture, FeralTic.DX11.DX11RenderContext context)
-        {
-            device = context.Device;
-            if (texture == null)
-                texture = new DX11ResourceTexture2D(context);
-
-            if (frame.Loaded)
-            {
-                if (!texture.MatchesSizeByDescription(description))
-                {
-                    var tex = new Texture2D(device, description);
-                    texture.SetResource(tex);
-                    texture.Meta = "";
-                }
-
-                if (frame.Loaded && (texture.Meta != frame.Filename))
-                {
-                    frame.CopyResource(texture);
-                    texture.Meta = frame.Filename;
-                    description = frame.Description;
-                }
-            }
-            return texture;
-        }
 
         public void Dispose()
         {

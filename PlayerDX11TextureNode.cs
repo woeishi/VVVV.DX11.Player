@@ -95,7 +95,6 @@ namespace VVVV.DX11
                 .CombineSpreads(FPreloadFrames.SliceCount)
                 .CombineSpreads(FVisibleFrameId.SliceCount);
                 
-			
 			FPlayers.ResizeAndDispose(spreadMax, (int slice) => new Player(FDirectory[slice], FFileMask[slice], FMemoryPool, FLogger));
             FFrameCount.SliceCount = spreadMax;
             FPreloaded.SliceCount = spreadMax;
@@ -138,15 +137,14 @@ namespace VVVV.DX11
             int i = 0;
             for (int b = 0; b < spreadMax; b++)
             {
-                
                 for (int s = 0; s < FVisibleFrameId[b].SliceCount; s++)
                 {
                     if (FPlayers[b].FrameCount > 0)
                     {
                         try
                         {
-                            var frame = FPlayers[b].GetFrame(FVisibleFrameId[b][s]);
-                            FTextureOutput[i][context] = FPlayers[b].SetTexture(frame, FTextureOutput[i][context], context);
+                            var frame = FPlayers[b][FVisibleFrameId[b][s]];
+                            FTextureOutput[i][context] = frame.CopyResource(FTextureOutput[i][context], context);
 
                             FWidth[i] = frame.Description.Width;
                             FHeight[i] = frame.Description.Height;
@@ -160,7 +158,6 @@ namespace VVVV.DX11
                         {
                             FLogger.Log(e);
                         }
-                        
                     }
                     else
                     {

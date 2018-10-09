@@ -10,9 +10,6 @@ namespace VVVV.DX11.ImagePlayer
     {
         string filename;
         public string Filename { get { return filename; } }
-        object streamLock;
-        bool needsDispose;
-        Stream memoryStream;
         IDecoder decoder;
         
         public int BufferSize { get; set; }
@@ -24,7 +21,8 @@ namespace VVVV.DX11.ImagePlayer
 
         System.Diagnostics.Stopwatch sw;
         CancellationTokenSource cts;
-        CancellationToken token;
+        Task LoadTask;
+        RefCounter RefCounter;
 
         SlimDX.Direct3D11.Device device;
         SlimDX.Direct3D11.Texture2DDescription description;
@@ -35,7 +33,6 @@ namespace VVVV.DX11.ImagePlayer
 
         public Frame(string name, IDecoder decoder, SlimDX.Direct3D11.Device device, MemoryPool memoryPool, VVVV.Core.Logging.ILogger logger)
         {
-            needsDispose = false;
             Loaded = false;
 
             filename = name;
@@ -43,9 +40,7 @@ namespace VVVV.DX11.ImagePlayer
 
             sw = new System.Diagnostics.Stopwatch();
             cts = new CancellationTokenSource();
-            token = cts.Token;
-
-            streamLock = new object();
+            RefCounter = new RefCounter();
 
             this.device = device;
            
@@ -55,11 +50,9 @@ namespace VVVV.DX11.ImagePlayer
 
         public void LoadAsync()
         {
-            var readTask = Task.Factory.StartNew(() => { Read(token); }, token, TaskCreationOptions.PreferFairness, TaskScheduler.Default);
-            readTask.ContinueWith((prev) => { LogExceptions(prev, "while reading"); }, token, TaskContinuationOptions.OnlyOnFaulted, TaskScheduler.Default);
-
-            var loadTask = readTask.ContinueWith((prev) => { Load(token); }, token, TaskContinuationOptions.OnlyOnRanToCompletion, TaskScheduler.Default);
-            loadTask.ContinueWith((prev) => { LogExceptions(prev," while loading"); }, token, TaskContinuationOptions.OnlyOnFaulted, TaskScheduler.Default);
+            LoadTask = Task.Factory.StartNew(() => { Load(cts.Token); }, cts.Token, TaskCreationOptions.PreferFairness, TaskScheduler.Default);
+            LoadTask.ContinueWith((prev) => { LogExceptions(prev, "while reading"); }, cts.Token, TaskContinuationOptions.OnlyOnFaulted, TaskScheduler.Default);
+            LoadTask = LoadTask.ContinueWith(prev => { DisposeAsync(); }, CancellationToken.None, TaskContinuationOptions.NotOnRanToCompletion, TaskScheduler.Default);
         }
 
         private void LogExceptions(Task previous, string topic)
@@ -68,59 +61,19 @@ namespace VVVV.DX11.ImagePlayer
                 FLogger.Log(VVVV.Core.Logging.LogType.Debug, e.GetType().ToString() + topic + ": "  + e.Message);
         }
         
-        private void Read(CancellationToken token)
-        {
-            sw.Start();
-            byte[] buffer = FMemoryPool.ManagedPool.GetMemory(BufferSize);
-            try
-            {
-                token.ThrowIfCancellationRequested();
-               
-                using (var fs = new FileStream(filename, FileMode.Open, FileAccess.Read, FileShare.Read, BufferSize, FileOptions.SequentialScan))
-                {
-                    var length = (int)fs.Length;
-                    //memoryStream = new MemoryStream(length);
-                    memoryStream = FMemoryPool.ManagedStreamPool.GetStream(length);
-                    needsDispose = true;
-                    while (fs.Position < length)
-                    {
-                        int numBytesRead = fs.Read(buffer, 0, buffer.Length);
-                        token.ThrowIfCancellationRequested();
-                        memoryStream.Write(buffer, 0, numBytesRead);
-                    }
-                    memoryStream.Position = 0;
-                }
-            }
-            catch (OperationCanceledException) { }
-            catch (Exception e)
-            {
-                System.Diagnostics.Debug.WriteLine("read file: {0}", e);
-                throw;
-            }
-            finally
-            {
-                FMemoryPool.ManagedPool.PutMemory(buffer);
-            }
-            ReadTime = sw.Elapsed.TotalMilliseconds;
-        }
-
         private unsafe void Load(CancellationToken token)
         {
-            sw.Restart();
+            sw.Start();
             try
             {
                 token.ThrowIfCancellationRequested();
                 decoder.Device = device;
-                lock (streamLock)
-                {
-                    decoder.Load(memoryStream);
-                }
+
+                decoder.Load(filename);
+
                 token.ThrowIfCancellationRequested();
 
                 description = decoder.Description;
-                LoadingCompleted(description);
-                decoder.Decode();
-                token.ThrowIfCancellationRequested();
 
                 Loaded = true;
             }
@@ -130,40 +83,44 @@ namespace VVVV.DX11.ImagePlayer
                 System.Diagnostics.Debug.WriteLine("load: {0}", e);
                 throw e;
             }
-            DecodeTime = sw.Elapsed.TotalMilliseconds;
+            finally
+            {
+                DecodeTime = sw.Elapsed.TotalMilliseconds;
+            }
         }
 
-        public FeralTic.DX11.Resources.DX11ResourceTexture2D CopyResource(FeralTic.DX11.Resources.DX11ResourceTexture2D texture)
+        public FeralTic.DX11.Resources.DX11ResourceTexture2D CopyResource(FeralTic.DX11.Resources.DX11ResourceTexture2D texture, FeralTic.DX11.DX11RenderContext context)
         {
-            sw.Restart();
-            try
+            if (texture == null)
+                texture = new FeralTic.DX11.Resources.DX11ResourceTexture2D(context);
+            if (Loaded && (texture.Meta != this.Filename))
             {
-                decoder.CopyResource(texture);
+                sw.Restart();
+                try
+                {
+                    texture.SetBySRV(decoder.SRV, RefCounter.Use());
+                }
+                catch (Exception e)
+                {
+                    System.Diagnostics.Debug.WriteLine("CopyResource: {0}", e);
+                }
+                finally
+                {
+                    CopyTime = sw.Elapsed.TotalMilliseconds;
+                }
             }
-            catch (Exception e)
-            {
-                System.Diagnostics.Debug.WriteLine("CopyResource: {0}", e);
-            }
-            CopyTime = sw.Elapsed.TotalMilliseconds;
-
             return texture;
         }
 
-        public void Dispose()
+        void DisposeAsync()
         {
-            cts.Cancel();
             try
             {
-                decoder.Dispose();
-                if (needsDispose)
+                while (!RefCounter.Free)
                 {
-                    lock (streamLock)
-                    {
-                        FMemoryPool.ManagedStreamPool.PutStream(memoryStream);
-                        //memoryStream.Dispose();
-                    }
-                    needsDispose = false;
+                    Thread.Sleep(1);
                 }
+                decoder.Dispose();
             }
             catch (Exception e)
             {
@@ -172,9 +129,19 @@ namespace VVVV.DX11.ImagePlayer
             finally
             {
                 decoder = null;
-                memoryStream = null;
             }
             cts.Dispose();
+        }
+
+        public void Dispose()
+        {
+            if (LoadTask != null)
+            {
+                if (!LoadTask.IsCompleted)
+                    cts.Cancel();
+                else
+                    Task.Factory.StartNew(() => DisposeAsync(), CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
+            }
         }
     }
 }

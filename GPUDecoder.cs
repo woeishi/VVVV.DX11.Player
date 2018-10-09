@@ -9,53 +9,36 @@ namespace VVVV.DX11.ImagePlayer
     {
         ImageLoadInformation ilf;
         Texture2D tex;
+
         public Device Device { get; set; }
 
         public int Width { get { return tex.Description.Width; } }
         public int Height { get { return tex.Description.Height; } }
         public SlimDX.DXGI.Format Format { get { return tex.Description.Format;  } }
         public Texture2DDescription Description { get; private set; }
+        public ShaderResourceView SRV { get; private set; }
 
         public GPUDecoder()
         {
             ilf = ImageLoadInformation.FromDefaults();
-            ilf.BindFlags = BindFlags.None;
-            ilf.CpuAccessFlags = CpuAccessFlags.Read;
+            ilf.BindFlags = BindFlags.ShaderResource;
+            ilf.CpuAccessFlags = CpuAccessFlags.None;
             ilf.FirstMipLevel = 0;
             ilf.MipLevels = 1;
-            ilf.Usage = ResourceUsage.Staging;
+            ilf.Usage = ResourceUsage.Default;
         }
         
-        public void Load(Stream stream)
+        public void Load(string filename)
         {
-            tex = Texture2D.FromStream(Device, stream, (int)stream.Length, ilf);
-            
-            Description = new Texture2DDescription()
-            {
-                ArraySize = 1,
-                BindFlags = BindFlags.ShaderResource,
-                CpuAccessFlags = CpuAccessFlags.Write,
-                Format = tex.Description.Format,
-                MipLevels = 1,
-                OptionFlags = ResourceOptionFlags.None,
-                Usage = ResourceUsage.Dynamic,
-                Width = tex.Description.Width,
-                Height = tex.Description.Height,
-                SampleDescription = new SlimDX.DXGI.SampleDescription(1, 0)
-            };
-        }
-
-        public void Decode() { }
-
-        public void CopyResource(FeralTic.DX11.Resources.DX11ResourceTexture2D texture)
-        {
-            texture.Context.CurrentDeviceContext.CopyResource(tex, texture.WritableResource);
+            tex = Texture2D.FromFile(Device, filename, ilf);
+            Description = tex.Description;
+            SRV = new ShaderResourceView(Device, tex);
         }
 
         public void Dispose()
         {
-            if (tex != null)
-                tex.Dispose();
+            tex?.Dispose();
+            SRV?.Dispose();
         }
     }
 }

@@ -76,7 +76,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BitmapDecoder.cs" />
-    <Compile Include="BitmapImageDecoder.cs" />
     <Compile Include="GPUDecoder.cs" />
     <Compile Include="PlayerDX11TextureNode.cs" />
     <Compile Include="IDecoder.cs" />
@@ -85,6 +84,7 @@
     <Compile Include="DX11ResourceTexture2D.cs" />
     <Compile Include="MemoryPool.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="RefCounter.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
