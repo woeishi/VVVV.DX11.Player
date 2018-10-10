@@ -24,7 +24,7 @@ namespace VVVV.DX11
                 Credits = "sponsored by http://meso.net", 
                 Author = "woei")]
 	#endregion PluginInfo
-	public class PlayerDX11Node : IPluginEvaluate, IPartImportsSatisfiedNotification, IDX11ResourceHost
+	public class PlayerDX11Node : IPluginEvaluate, IPartImportsSatisfiedNotification, IDX11ResourceHost, IDisposable
 	{
 		#region fields & pins
 		[Input("Directory", StringType = StringType.Directory)]
@@ -36,8 +36,8 @@ namespace VVVV.DX11
         [Input("Reload", IsBang = true)]
         public ISpread<bool> FReload;
 
-        [Input("IO Buffer Size", DefaultValue = 32768, MinValue = 128, Visibility = PinVisibility.OnlyInspector)]
-        public ISpread<int> FBufferSize;
+        [Input("Wait for Frame", DefaultBoolean = true, Visibility = PinVisibility.OnlyInspector)]
+        public ISpread<bool> FWaitFrame;
 
         [Input("Preload Frames")]
 		public ISpread<ISpread<int>> FPreloadFrames;
@@ -57,14 +57,11 @@ namespace VVVV.DX11
         [Output("Frame Loaded")]
         public ISpread<bool> FLoaded;
 
-        [Output("Duration IO")]
-        public ISpread<double> FReadTime;
+        [Output("Duration Load")]
+        public ISpread<double> FLoadTime;
 
-        [Output("Duration Decode")]
-        public ISpread<double> FDecodeTime;
-
-        [Output("Duration Texture")]
-        public ISpread<double> FGPUTime;
+        [Output("Duration Swap")]
+        public ISpread<double> FSwapTime;
 
         [Output("Frame Count")]
         public ISpread<int> FFrameCount;
@@ -84,14 +81,21 @@ namespace VVVV.DX11
 			FTextureOutput.SliceCount = 0;
             FPreloaded.SliceCount = 0;
 		}
-		
-		//called when data for any output pin is requested
-		public void Evaluate(int spreadMax)
+
+        public void Dispose()
+        {
+            foreach (var p in FPlayers)
+                p.Dispose();
+            FMemoryPool.Dispose();
+        }
+
+        //called when data for any output pin is requested
+        public void Evaluate(int spreadMax)
 		{
             spreadMax = FDirectory.SliceCount
                 .CombineWith(FFileMask)
                 .CombineWith(FReload)
-                .CombineWith(FBufferSize)
+                .CombineWith(FWaitFrame)
                 .CombineSpreads(FPreloadFrames.SliceCount)
                 .CombineSpreads(FVisibleFrameId.SliceCount);
                 
@@ -106,9 +110,8 @@ namespace VVVV.DX11
             FHeight.SliceCount = texSliceCount;
             FLoaded.SliceCount = texSliceCount;
             
-			FReadTime.SliceCount = texSliceCount;
-            FDecodeTime.SliceCount = texSliceCount;
-			FGPUTime.SliceCount = texSliceCount;
+            FLoadTime.SliceCount = texSliceCount;
+			FSwapTime.SliceCount = texSliceCount;
 			
 			for (int i=0; i<spreadMax; i++)
 			{
@@ -117,7 +120,6 @@ namespace VVVV.DX11
 					FPlayers[i].Dispose();
 					FPlayers[i] = new Player(FDirectory[i], FFileMask[i], FMemoryPool, FLogger);
 				}
-                FPlayers[i].BufferSize = FBufferSize[i];
                 if (FPlayers[i].FrameCount > 0)
 				    FPlayers[i].Preload(FPreloadFrames[i]);
 
@@ -131,7 +133,7 @@ namespace VVVV.DX11
             int spreadMax = FDirectory.SliceCount
                 .CombineWith(FFileMask)
                 .CombineWith(FReload)
-                .CombineWith(FBufferSize)
+                .CombineWith(FWaitFrame)
                 .CombineSpreads(FPreloadFrames.SliceCount)
                 .CombineSpreads(FVisibleFrameId.SliceCount);
             int i = 0;
@@ -144,15 +146,15 @@ namespace VVVV.DX11
                         try
                         {
                             var frame = FPlayers[b][FVisibleFrameId[b][s]];
+                            frame.WaitForFrame = FWaitFrame[b];
                             FTextureOutput[i][context] = frame.SetSRV(FTextureOutput[i][context], context);
 
                             FWidth[i] = frame.Description.Width;
                             FHeight[i] = frame.Description.Height;
                             FLoaded[i] = frame.Loaded;
 
-                            FReadTime[i] = frame.ReadTime;
-                            FDecodeTime[i] = frame.DecodeTime;
-                            FGPUTime[i] = frame.CopyTime;
+                            FLoadTime[i] = frame.LoadTime;
+                            FSwapTime[i] = frame.SwapTime;
                         }
                         catch (Exception e)
                         {
@@ -165,9 +167,8 @@ namespace VVVV.DX11
                         FHeight[i] = 0;
                         FLoaded[i] = false;
 
-                        FReadTime[i] = 0;
-                        FDecodeTime[i] = 0;
-                        FGPUTime[i] = 0;
+                        FLoadTime[i] = 0;
+                        FSwapTime[i] = 0;
                     }
                     i++;
                 }
@@ -179,5 +180,5 @@ namespace VVVV.DX11
             foreach (var t in FTextureOutput)
                 t.Dispose(context);
         }
-	}
+    }
 }

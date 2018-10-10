@@ -1,6 +1,4 @@
 ﻿using System;
-
-using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -12,18 +10,15 @@ namespace VVVV.DX11.ImagePlayer
         IDecoder decoder;
         public bool WaitForFrame { get; set; }
 
-        public bool Loaded { get; private set; }
-
-        public double ReadTime { get; private set; }
-        public double DecodeTime { get; private set; }
-        public double CopyTime { get; private set; }
-
-        System.Diagnostics.Stopwatch sw;
-        CancellationTokenSource cts;
-        Task LoadTask;
-        RefCounter RefCounter;
-
         public SlimDX.Direct3D11.Texture2DDescription Description { get; private set; }
+        public bool Loaded { get; private set; }
+        public double LoadTime { get; private set; }
+        public double SwapTime { get; private set; }
+
+        Task LoadTask;
+        readonly System.Diagnostics.Stopwatch sw;
+        readonly CancellationTokenSource cts;
+        readonly RefCounter RefCounter;
 
         readonly VVVV.Core.Logging.ILogger FLogger;
 
@@ -72,7 +67,7 @@ namespace VVVV.DX11.ImagePlayer
             //catch (OperationCanceledException) { }
             finally
             {
-                DecodeTime = sw.Elapsed.TotalMilliseconds;
+                LoadTime = sw.Elapsed.TotalMilliseconds;
             }
         }
 
@@ -88,7 +83,7 @@ namespace VVVV.DX11.ImagePlayer
                 if (!this.Loaded)
                     LoadTask.Wait();
                 texture.SetBySRV(decoder.SRV, handle);
-                CopyTime = sw.Elapsed.TotalMilliseconds;
+                SwapTime = sw.Elapsed.TotalMilliseconds;
             }
             return texture;
         }
@@ -97,10 +92,10 @@ namespace VVVV.DX11.ImagePlayer
         {
             while (!RefCounter.Free)
             {
+                // we're not in a hurry when disposing, give time to other tasks to finish
                 Thread.Sleep(3);
             }
             decoder.Dispose();
-            
             cts.Dispose();
         }
 
@@ -108,7 +103,7 @@ namespace VVVV.DX11.ImagePlayer
         {
             if (LoadTask != null)
             {
-                if (!LoadTask.IsCompleted)
+                if (!Loaded)
                     cts.Cancel();
                 else
                     Task.Factory.StartNew(() => DisposeAsync(), CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
