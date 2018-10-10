@@ -35,11 +35,13 @@ namespace FeralTic.DX11.Resources
 	
         public void SetBySRV(ShaderResourceView srv, IDisposable handle)
         {
-            Handle?.Dispose();
-            Handle = handle;
+            var _SRV = this.SRV; //just in case GC wants to cleanup on overwrite
+            var _R = this.Resource;
             this.SRV = srv;
             this.Resource = (Texture2D)srv.Resource;
             this.desc = this.Resource.Description;
+            Handle?.Dispose();
+            Handle = handle;
         }
 		
         public bool MatchesSizeByDescription(Texture2DDescription Description)
