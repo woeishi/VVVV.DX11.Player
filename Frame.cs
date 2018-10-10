@@ -51,8 +51,9 @@ namespace VVVV.DX11.ImagePlayer
         public void LoadAsync()
         {
             LoadTask = Task.Factory.StartNew(() => { Load(cts.Token); }, cts.Token, TaskCreationOptions.PreferFairness, TaskScheduler.Default);
-            LoadTask.ContinueWith((prev) => { LogExceptions(prev, "while reading"); }, cts.Token, TaskContinuationOptions.OnlyOnFaulted, TaskScheduler.Default);
-            LoadTask = LoadTask.ContinueWith(prev => { DisposeAsync(); }, CancellationToken.None, TaskContinuationOptions.NotOnRanToCompletion, TaskScheduler.Default);
+            LoadTask.ContinueWith((prev) => { LogExceptions(prev, "while reading"); }, CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted, TaskScheduler.Default);
+            var disposeTask = LoadTask.ContinueWith(prev => { DisposeAsync(); }, CancellationToken.None, TaskContinuationOptions.OnlyOnCanceled, TaskScheduler.Default);
+            disposeTask.ContinueWith((prev) => { LogExceptions(prev, "while disposing"); }, CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted, TaskScheduler.Default);
         }
 
         private void LogExceptions(Task previous, string topic)
@@ -77,12 +78,7 @@ namespace VVVV.DX11.ImagePlayer
 
                 Loaded = true;
             }
-            catch (OperationCanceledException) { }
-            catch (Exception e)
-            {
-                System.Diagnostics.Debug.WriteLine("load: {0}", e);
-                throw e;
-            }
+            //catch (OperationCanceledException) { }
             finally
             {
                 DecodeTime = sw.Elapsed.TotalMilliseconds;
