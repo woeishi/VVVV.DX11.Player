@@ -1,6 +1,4 @@
-﻿using System;
-using System.IO;
-using SlimDX.Direct3D11;
+﻿using SlimDX.Direct3D11;
 
 namespace VVVV.DX11.ImagePlayer
 {

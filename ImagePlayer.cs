@@ -5,30 +5,31 @@ using System.Collections.Generic;
 
 using SlimDX.Direct3D11;
 using VVVV.Core.Logging;
+using VVVV.Utils.VMath;
 
 namespace VVVV.DX11.ImagePlayer
 {
     class Player : IDisposable
     {
-        public string DirectoryName { get; private set; }
-        public string FileMask { get; private set; }
-        public int BufferSize { get; set; }
         FileInfo[] files;
-        public int FrameCount { get; private set; }
-
-        Device device;
         Dictionary<int, Frame> frames;
         List<int> requestedKeys;
+
+        public string DirectoryName { get; private set; }
+        public string FileMask { get; private set; }
+        public int FrameCount { get; private set; }
+
         public Frame this[int index]
         {
             get
             {
-                var id = VVVV.Utils.VMath.VMath.Zmod(index, requestedKeys.Count);
+                var id = VMath.Zmod(index, requestedKeys.Count);
                 return frames[requestedKeys[id]];
             }
         }
         public IEnumerable<bool> Loaded => requestedKeys.Select(k => frames[k].Loaded);
 
+        readonly Device device;
         readonly MemoryPool FMemoryPool;
         readonly ILogger FLogger;
 
@@ -38,7 +39,7 @@ namespace VVVV.DX11.ImagePlayer
             FLogger = logger;
 
 			DirectoryName = dir;
-            this.FileMask = fileMask;
+            FileMask = fileMask;
 			var directory = new DirectoryInfo(dir);
             requestedKeys = new List<int>();
             frames = new Dictionary<int, Frame>();
@@ -59,7 +60,7 @@ namespace VVVV.DX11.ImagePlayer
 
 			foreach (var id in indices)
 			{
-                var key = VVVV.Utils.VMath.VMath.Zmod(id, FrameCount);
+                var key = VMath.Zmod(id, FrameCount);
 
                 requestedKeys.Add(key);
 
@@ -84,8 +85,8 @@ namespace VVVV.DX11.ImagePlayer
 
         public void Dispose()
         {
-            foreach (var s in frames.Values)
-                s.Dispose();
+            foreach (var frame in frames.Values)
+                frame.Dispose();
         }
     }
 }

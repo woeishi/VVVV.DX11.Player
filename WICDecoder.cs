@@ -1,8 +1,6 @@
 ﻿using System;
-using SlimDX.Direct3D11;
-
 using SharpDX.WIC;
-
+using SlimDX.Direct3D11;
 
 namespace VVVV.DX11.ImagePlayer
 {
@@ -14,7 +12,6 @@ namespace VVVV.DX11.ImagePlayer
         SlimDX.DataStream ds;
         Texture2D tex;
         
-        int FStride;
         int FLength;
         
         public Device Device { get; set; }
@@ -34,15 +31,15 @@ namespace VVVV.DX11.ImagePlayer
 
         public void Load(string filename, System.Threading.CancellationToken token)
         {
+            int stride;
             var imgF = new ImagingFactory();
-           
             using (var decoder = new SharpDX.WIC.BitmapDecoder(imgF, filename, SharpDX.IO.NativeFileAccess.Read, DecodeOptions.CacheOnLoad))
             using (var frame = decoder.GetFrame(0))
             {
                 var w = frame.Size.Width;
                 var h = frame.Size.Height;
-                FStride = PixelFormat.GetStride(PixelFormat.Format32bppBGRA, w);
-                FLength = FStride * h;
+                stride = PixelFormat.GetStride(PixelFormat.Format32bppBGRA, w);
+                FLength = stride * h;
 
                 Description = new Texture2DDescription()
                 {
@@ -64,17 +61,17 @@ namespace VVVV.DX11.ImagePlayer
                     using (var converter = new FormatConverter(imgF))
                     {
                         converter.Initialize(frame, PixelFormat.Format32bppBGRA);
-                        converter.CopyPixels(FStride, ptr, FLength);
+                        converter.CopyPixels(stride, ptr, FLength);
                     }
                 }
                 else
                 {
-                    frame.CopyPixels(FStride, ptr, FLength);
+                    frame.CopyPixels(stride, ptr, FLength);
                 }
             }
             token.ThrowIfCancellationRequested();
             ds = new SlimDX.DataStream(ptr, FLength, true, false);
-            var dr = new SlimDX.DataRectangle(FStride, ds);
+            var dr = new SlimDX.DataRectangle(stride, ds);
             token.ThrowIfCancellationRequested();
             tex = new Texture2D(Device, Description, dr);
             token.ThrowIfCancellationRequested();
