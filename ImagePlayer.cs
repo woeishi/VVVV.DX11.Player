@@ -8,28 +8,26 @@ using VVVV.Core.Logging;
 
 namespace VVVV.DX11.ImagePlayer
 {
-	class Player : IDisposable
-	{
+    class Player : IDisposable
+    {
         public string DirectoryName { get; private set; }
-		public string FileMask { get; private set; }
+        public string FileMask { get; private set; }
         public int BufferSize { get; set; }
-		DirectoryInfo directory;
-		FileInfo[] files;
+        FileInfo[] files;
         public int FrameCount { get; private set; }
 
         Device device;
-
         Dictionary<int, Frame> frames;
         List<int> requestedKeys;
-        public Frame this[int index] => frames[requestedKeys[index]];
-        public IEnumerable<bool> Loaded
-		{
-			get 
-			{
-		 		foreach (var key in requestedKeys)
-					yield return frames[key].Loaded;
-			}
-		}
+        public Frame this[int index]
+        {
+            get
+            {
+                var id = VVVV.Utils.VMath.VMath.Zmod(index, requestedKeys.Count);
+                return frames[requestedKeys[id]];
+            }
+        }
+        public IEnumerable<bool> Loaded => requestedKeys.Select(k => frames[k].Loaded);
 
         readonly MemoryPool FMemoryPool;
         readonly ILogger FLogger;
@@ -41,7 +39,7 @@ namespace VVVV.DX11.ImagePlayer
 
 			DirectoryName = dir;
             this.FileMask = fileMask;
-			directory = new DirectoryInfo(dir);
+			var directory = new DirectoryInfo(dir);
             requestedKeys = new List<int>();
             frames = new Dictionary<int, Frame>();
             if (directory.Exists)
@@ -69,9 +67,9 @@ namespace VVVV.DX11.ImagePlayer
                     toDelete.Remove(key);
                 else
                 {
-                    IDecoder decoder = Decoder.SelectFromFile(files[key]);
-                    frames[key] = new Frame(files[key].FullName, decoder, device, FMemoryPool, FLogger);
-                    frames[key].BufferSize = BufferSize;
+                    IDecoder decoder = Decoder.SelectFromFile(files[key], FMemoryPool);
+                    decoder.Device = device;
+                    frames[key] = new Frame(files[key].FullName, decoder, FLogger);
 
                     frames[key].LoadAsync();
                 }
