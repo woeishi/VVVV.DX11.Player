@@ -144,7 +144,7 @@ namespace VVVV.DX11
                         try
                         {
                             var frame = FPlayers[b][FVisibleFrameId[b][s]];
-                            FTextureOutput[i][context] = frame.CopyResource(FTextureOutput[i][context], context);
+                            FTextureOutput[i][context] = frame.SetSRV(FTextureOutput[i][context], context);
 
                             FWidth[i] = frame.Description.Width;
                             FHeight[i] = frame.Description.Height;
@@ -176,7 +176,8 @@ namespace VVVV.DX11
 		
 		public void Destroy(DX11RenderContext context, bool force)
         {
-            this.FTextureOutput[0].Dispose(context);
+            foreach (var t in FTextureOutput)
+                t.Dispose(context);
         }
 	}
 }
