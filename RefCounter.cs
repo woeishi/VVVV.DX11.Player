@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 
 namespace VVVV.DX11.ImagePlayer
 {
@@ -10,11 +11,11 @@ namespace VVVV.DX11.ImagePlayer
             internal Handle(RefCounter refCounter)
             {
                 rc = refCounter;
-                rc.count++;
+                Interlocked.Increment(ref rc.count);
             }
             private Handle()
             { }
-            public void Dispose() => rc.count--;
+            public void Dispose() => Interlocked.Decrement(ref rc.count);
         }
 
         int count = 0;
