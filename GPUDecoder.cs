@@ -2,7 +2,6 @@
 using System.IO;
 using SlimDX.Direct3D11;
 
-
 namespace VVVV.DX11.ImagePlayer
 {
     class GPUDecoder : IDecoder
@@ -11,10 +10,6 @@ namespace VVVV.DX11.ImagePlayer
         Texture2D tex;
 
         public Device Device { get; set; }
-
-        public int Width { get { return tex.Description.Width; } }
-        public int Height { get { return tex.Description.Height; } }
-        public SlimDX.DXGI.Format Format { get { return tex.Description.Format;  } }
         public Texture2DDescription Description { get; private set; }
         public ShaderResourceView SRV { get; private set; }
 
@@ -28,10 +23,11 @@ namespace VVVV.DX11.ImagePlayer
             ilf.Usage = ResourceUsage.Default;
         }
         
-        public void Load(string filename)
+        public void Load(string filename, System.Threading.CancellationToken token)
         {
             tex = Texture2D.FromFile(Device, filename, ilf);
             Description = tex.Description;
+            token.ThrowIfCancellationRequested();
             SRV = new ShaderResourceView(Device, tex);
         }
 

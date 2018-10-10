@@ -13,20 +13,14 @@ namespace VVVV.DX11.ImagePlayer
         BitmapData bitmapData;
         SlimDX.DataStream ds;
         Texture2D tex;
-        bool loaded = false;
-        bool decoded = false;
 
-        public int Width { get { return bitmap.Width; } }
-        public int Height { get { return bitmap.Height; } }
+        public Device Device { get; set; }
         public Texture2DDescription Description { get; private set; }
         public ShaderResourceView SRV { get; private set; }
 
-        public Device Device { get; set; }
-
-        public void Load(string filename)
+        public void Load(string filename, System.Threading.CancellationToken token)
         {
             bitmap = new Bitmap(filename);
-            loaded = true;
 
             Description = new Texture2DDescription()
             {
@@ -41,15 +35,15 @@ namespace VVVV.DX11.ImagePlayer
                 Height = bitmap.Height,
                 SampleDescription = new SlimDX.DXGI.SampleDescription(1, 0)
             };
-
+            token.ThrowIfCancellationRequested();
             bitmapData = bitmap.LockBits(
                                     new Rectangle(0, 0, bitmap.Width, bitmap.Height),
                                     ImageLockMode.ReadOnly,
                                     PixelFormat.Format32bppPArgb);
-            decoded = true;
 
             ds = new SlimDX.DataStream(bitmapData.Scan0, bitmapData.Stride * bitmapData.Height, true, false);
             var dr = new SlimDX.DataRectangle(bitmapData.Stride, ds);
+            token.ThrowIfCancellationRequested();
             tex = new Texture2D(Device, Description, dr);
             SRV = new ShaderResourceView(Device, tex);
         }
@@ -58,14 +52,12 @@ namespace VVVV.DX11.ImagePlayer
         {
             SRV?.Dispose();
             tex?.Dispose();
-
-            if (decoded)
-                bitmap.UnlockBits(bitmapData);
-            if (loaded)
-                bitmap.Dispose();
             ds?.Dispose();
-            bitmapData = null;
-            bitmap = null;
+
+            if (bitmapData != null)
+                bitmap.UnlockBits(bitmapData);
+            
+            bitmap?.Dispose();
         }
     }
 }

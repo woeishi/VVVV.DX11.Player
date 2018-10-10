@@ -4,13 +4,11 @@ namespace VVVV.DX11.ImagePlayer
 {
     public interface IDecoder : IDisposable
     {
-        int Width { get; }
-        int Height { get; }
-        SlimDX.Direct3D11.Texture2DDescription Description { get; }
         SlimDX.Direct3D11.Device Device { get; set; }
+        SlimDX.Direct3D11.Texture2DDescription Description { get; }
         SlimDX.Direct3D11.ShaderResourceView SRV { get; }
 
-        void Load(string filename);
+        void Load(string filename, System.Threading.CancellationToken token);
     }
 
     static class Decoder
