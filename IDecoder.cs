@@ -13,18 +13,13 @@ namespace VVVV.DX11.ImagePlayer
 
     static class Decoder
     {
-        public static IDecoder SelectFromFile(System.IO.FileInfo file)
+        public static IDecoder SelectFromFile(System.IO.FileInfo file, MemoryPool memPool)
         {
             var ext = file.Extension.ToLower();
-            if (BmpSupportedExtensions.Contains(ext))
-                return new BitmapDecoder();
-            else
+            if (ext.Contains(".dds"))
                 return new GPUDecoder();
+            else
+                return new WICDecoder(memPool);
         }
-
-        private static readonly System.Collections.Generic.HashSet<string> BmpSupportedExtensions = new System.Collections.Generic.HashSet<string>
-        {
-             ".bmp",".exif",".gif",".ico",".jpg",".jpeg",".png",".tif",".tiff",".wmp"
-        };
     }
 }

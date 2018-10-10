@@ -44,6 +44,14 @@
       <Private>False</Private>
     </Reference>
     <Reference Include="PresentationCore" />
+    <Reference Include="SharpDX">
+      <HintPath>..\vvvv_50beta35.2_x64\packs\dx11\core\SharpDX.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="SharpDX.Direct2D1">
+      <HintPath>..\vvvv_50beta35.2_x64\packs\dx11\core\SharpDX.Direct2D1.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.ComponentModel.Composition.CodePlex, Version=4.1.2.0, Culture=neutral, PublicKeyToken=13e5ffd4e05db186, processorArchitecture=MSIL">
       <HintPath>packages\VVVV.System.ComponentModel.Composition.Codeplex.2.5.0\lib\net40\System.ComponentModel.Composition.CodePlex.dll</HintPath>
@@ -85,6 +93,7 @@
     <Compile Include="MemoryPool.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RefCounter.cs" />
+    <Compile Include="WICDecoder.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
