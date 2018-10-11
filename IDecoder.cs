@@ -2,6 +2,11 @@
 
 namespace VVVV.DX11.ImagePlayer
 {
+    public enum DecoderChoice
+    {
+        Automatic, DirectX, WIC
+    }
+
     public interface IDecoder : IDisposable
     {
         SlimDX.Direct3D11.Device Device { get; set; }
@@ -13,10 +18,14 @@ namespace VVVV.DX11.ImagePlayer
 
     static class Decoder
     {
-        public static IDecoder SelectFromFile(System.IO.FileInfo file, MemoryPool memPool)
+        public static IDecoder SelectFromFile(DecoderChoice decoderChoice, System.IO.FileInfo file, MemoryPool memPool)
         {
-            var ext = file.Extension.ToLower();
-            if (ext.Contains(".dds"))
+            if (decoderChoice == DecoderChoice.Automatic)
+            {
+                var ext = file.Extension.ToLower();
+                decoderChoice = ext.Contains(".dds") ? DecoderChoice.DirectX : DecoderChoice.WIC;
+            }
+            if (decoderChoice == DecoderChoice.DirectX)
                 return new GPUDecoder();
             else
                 return new WICDecoder(memPool);

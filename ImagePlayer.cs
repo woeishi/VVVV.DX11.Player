@@ -53,7 +53,7 @@ namespace VVVV.DX11.ImagePlayer
             device = Lib.Devices.DX11GlobalDevice.DeviceManager.RenderContexts[0].Device;
         }
 		
-        public void Preload(IEnumerable<int> indices)
+        public void Preload(IEnumerable<int> indices, DecoderChoice decoderChoice = DecoderChoice.Automatic)
 		{
             requestedKeys.Clear();
 			var toDelete = new List<int>(frames.Keys);
@@ -68,7 +68,7 @@ namespace VVVV.DX11.ImagePlayer
                     toDelete.Remove(key);
                 else
                 {
-                    IDecoder decoder = Decoder.SelectFromFile(files[key], FMemoryPool);
+                    IDecoder decoder = Decoder.SelectFromFile(decoderChoice, files[key], FMemoryPool);
                     decoder.Device = device;
                     frames[key] = new Frame(files[key].FullName, decoder, FLogger);
 

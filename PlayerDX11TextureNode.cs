@@ -26,6 +26,8 @@ namespace VVVV.DX11
 	#endregion PluginInfo
 	public class PlayerDX11Node : IPluginEvaluate, IPartImportsSatisfiedNotification, IDX11ResourceHost, IDisposable
 	{
+        
+
 		#region fields & pins
 		[Input("Directory", StringType = StringType.Directory)]
 		public ISpread<string> FDirectory;
@@ -35,6 +37,9 @@ namespace VVVV.DX11
 
         [Input("Reload", IsBang = true)]
         public ISpread<bool> FReload;
+
+        [Input("Decoder", Visibility = PinVisibility.OnlyInspector)]
+        public ISpread<DecoderChoice> FDecoderChoice;
 
         [Input("Wait for Frame", DefaultBoolean = true, Visibility = PinVisibility.OnlyInspector)]
         public ISpread<bool> FWaitFrame;
@@ -74,6 +79,7 @@ namespace VVVV.DX11
 		
 		private Spread<Player> FPlayers = new Spread<Player>(0);
         private readonly MemoryPool FMemoryPool = new MemoryPool();
+        private int FSpreadMax;
         #endregion fields & pins
 
         public void OnImportsSatisfied()
@@ -90,20 +96,21 @@ namespace VVVV.DX11
         }
 
         //called when data for any output pin is requested
-        public void Evaluate(int spreadMax)
+        public void Evaluate(int _)
 		{
-            spreadMax = FDirectory.SliceCount
+            FSpreadMax = FDirectory.SliceCount
                 .CombineWith(FFileMask)
                 .CombineWith(FReload)
+                .CombineWith(FDecoderChoice)
                 .CombineWith(FWaitFrame)
                 .CombineSpreads(FPreloadFrames.SliceCount)
                 .CombineSpreads(FVisibleFrameId.SliceCount);
                 
-			FPlayers.ResizeAndDispose(spreadMax, (int slice) => new Player(FDirectory[slice], FFileMask[slice], FMemoryPool, FLogger));
-            FFrameCount.SliceCount = spreadMax;
-            FPreloaded.SliceCount = spreadMax;
+			FPlayers.ResizeAndDispose(FSpreadMax, (int slice) => new Player(FDirectory[slice], FFileMask[slice], FMemoryPool, FLogger));
+            FFrameCount.SliceCount = FSpreadMax;
+            FPreloaded.SliceCount = FSpreadMax;
 
-            int texSliceCount = spreadMax.CombineSpreads(SpreadUtils.SpreadMax(FVisibleFrameId as System.Collections.Generic.IEnumerable<ISpread<int>>));
+            int texSliceCount = FSpreadMax.CombineSpreads(SpreadUtils.SpreadMax(FVisibleFrameId as System.Collections.Generic.IEnumerable<ISpread<int>>));
 
             FTextureOutput.Resize(texSliceCount, () => new DX11Resource<DX11ResourceTexture2D>(), (t) => t.Dispose());
             FWidth.SliceCount = texSliceCount;
@@ -113,7 +120,7 @@ namespace VVVV.DX11
             FLoadTime.SliceCount = texSliceCount;
 			FSwapTime.SliceCount = texSliceCount;
 			
-			for (int i=0; i<spreadMax; i++)
+			for (int i=0; i< FSpreadMax; i++)
 			{
 				if (FPlayers[i].DirectoryName != FDirectory[i] || FPlayers[i].FileMask != FFileMask[i] || FReload[i])
 				{
@@ -121,7 +128,9 @@ namespace VVVV.DX11
 					FPlayers[i] = new Player(FDirectory[i], FFileMask[i], FMemoryPool, FLogger);
 				}
                 if (FPlayers[i].FrameCount > 0)
-				    FPlayers[i].Preload(FPreloadFrames[i]);
+                {
+                    FPlayers[i].Preload(FPreloadFrames[i], FDecoderChoice[i]);
+                }
 
                 FFrameCount[i] = FPlayers[i].FrameCount;
 				FPreloaded[i].AssignFrom(FPlayers[i].Loaded);
@@ -130,14 +139,8 @@ namespace VVVV.DX11
 		
 		public void Update(DX11RenderContext context)
         {
-            int spreadMax = FDirectory.SliceCount
-                .CombineWith(FFileMask)
-                .CombineWith(FReload)
-                .CombineWith(FWaitFrame)
-                .CombineSpreads(FPreloadFrames.SliceCount)
-                .CombineSpreads(FVisibleFrameId.SliceCount);
             int i = 0;
-            for (int b = 0; b < spreadMax; b++)
+            for (int b = 0; b < FSpreadMax; b++)
             {
                 for (int s = 0; s < FVisibleFrameId[b].SliceCount; s++)
                 {
