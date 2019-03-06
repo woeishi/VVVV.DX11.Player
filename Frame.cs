@@ -80,10 +80,25 @@ namespace VVVV.DX11.ImagePlayer
             {
                 sw.Restart();
                 var handle = RefCounter.Use();
+                
                 if (!this.Loaded)
-                    LoadTask.Wait();
-                texture.SetBySRV(decoder.SRV, handle);
-                SwapTime = sw.Elapsed.TotalMilliseconds;
+                {
+                    try
+                    {
+                        LoadTask.Wait();
+                    }
+                    catch (AggregateException) // .Wait can surface the exception
+                    {
+                        handle.Dispose();
+                        LogExceptions(LoadTask, "while waiting");
+                    }
+                }
+                        
+                if (this.Loaded)
+                {
+                    texture.SetBySRV(decoder.SRV, handle);
+                    SwapTime = sw.Elapsed.TotalMilliseconds;
+                }   
             }
             return texture;
         }
@@ -103,7 +118,7 @@ namespace VVVV.DX11.ImagePlayer
         {
             if (LoadTask != null)
             {
-                if (!Loaded)
+                if (!Loaded && LoadTask.Status != TaskStatus.Faulted && LoadTask.Status != TaskStatus.Canceled)
                     cts.Cancel();
                 else
                     Task.Factory.StartNew(() => DisposeAsync(), CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
