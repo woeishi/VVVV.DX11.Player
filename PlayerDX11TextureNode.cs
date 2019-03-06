@@ -26,8 +26,6 @@ namespace VVVV.DX11
 	#endregion PluginInfo
 	public class PlayerDX11Node : IPluginEvaluate, IPartImportsSatisfiedNotification, IDX11ResourceHost, IDisposable
 	{
-        
-
 		#region fields & pins
 		[Input("Directory", StringType = StringType.Directory)]
 		public ISpread<string> FDirectory;

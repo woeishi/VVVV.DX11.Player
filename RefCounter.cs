@@ -13,8 +13,8 @@ namespace VVVV.DX11.ImagePlayer
                 rc = refCounter;
                 Interlocked.Increment(ref rc.count);
             }
-            private Handle()
-            { }
+            Handle() { }
+
             public void Dispose() => Interlocked.Decrement(ref rc.count);
         }
 
